@@ -1,5 +1,7 @@
 # Use connected components to find and color the interior of a circle
-# For a black circle (not filled in) on a white background, the biggest white component is background, second biggest is interior of circle or "body"
+
+# For a black circle (not filled in) on a white background, 
+# the biggest white component is background, second biggest is interior of circle or "body"
 
 import numpy as np
 from skimage.measure import label
