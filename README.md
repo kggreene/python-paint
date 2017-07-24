@@ -1,7 +1,7 @@
 # python-paint
 machine learning, computer vision and graphics for automating drawing and coloring
 
-some planned functionality:
+### some planned functionality:
 1. Red Ball - machine learning - use Pix2Pix (see Image-to-Image Translation with Conditional Adversarial Networks, Isola, et. al., https://github.com/phillipi/pix2pix), tensorflow to color balls red
 2. DONE Sunflower Paint - use component analysis to color sketched flowers
 3. Dragon Paint - machine learning - combine Pix2Pix, tensorflow and component analysis to color dragon sketches
