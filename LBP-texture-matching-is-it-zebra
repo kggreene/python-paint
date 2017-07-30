@@ -1,0 +1,192 @@
+#LBP local binary patterns for texture matching
+#train program to tell the difference between a detail of a zebra, a horse or grass
+
+import numpy as np
+import cv2, os
+import pylab as py
+from skimage.feature import local_binary_pattern
+from scipy.stats import itemfreq
+
+#training images
+
+#calculate LBP histograms
+
+# Lists for storing the LBP Histograms and the corresponding category label 
+# For each image in the training set calculate the LBP histogram
+# and update X_test, X_label
+X_test = []
+X_label = []
+
+# Read in the reference images; the zebra and grass crops are from the zebra in a field photo
+# Two each with very similar patterns
+
+# Two zebra details
+
+im = cv2.imread('zebraDetail1.png')
+# Convert to grayscale as LBP works on grayscale image
+im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+radius = 3
+# Number of points to be considered as neighbors 
+no_points = 8 * radius
+# Uniform LBP is used
+lbp = local_binary_pattern(im_gray, no_points, radius, method='uniform')
+# Calculate the histogram
+x = itemfreq(lbp.ravel())
+# Normalize the histogram
+hist = x[:, 1]/sum(x[:, 1])
+
+# Append histogram to X_test, label to X_label
+X_test.append(hist)
+X_label.append('zebra')
+
+im = cv2.imread('zebraDetail2.png')
+# Convert to grayscale as LBP works on grayscale image
+im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+radius = 3
+# Number of points to be considered as neighbors 
+no_points = 8 * radius
+# Uniform LBP is used
+lbp = local_binary_pattern(im_gray, no_points, radius, method='uniform')
+# Calculate the histogram
+x = itemfreq(lbp.ravel())
+# Normalize the histogram
+hist = x[:, 1]/sum(x[:, 1])
+
+# Append histogram to X_test, label to X_label
+X_test.append(hist)
+X_label.append('zebra')
+
+# Two horse details
+
+im = cv2.imread('horseDetail1.png')
+# Convert to grayscale as LBP works on grayscale image
+im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+radius = 3
+# Number of points to be considered as neighbors 
+no_points = 8 * radius
+# Uniform LBP is used
+lbp = local_binary_pattern(im_gray, no_points, radius, method='uniform')
+# Calculate the histogram
+x = itemfreq(lbp.ravel())
+# Normalize the histogram
+hist = x[:, 1]/sum(x[:, 1])
+
+# Append histogram to X_test, label to X_label
+X_test.append(hist)
+X_label.append('horse')
+
+im = cv2.imread('horseDetail2.png')
+# Convert to grayscale as LBP works on grayscale image
+im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+radius = 3
+# Number of points to be considered as neighbors 
+no_points = 8 * radius
+# Uniform LBP is used
+lbp = local_binary_pattern(im_gray, no_points, radius, method='uniform')
+# Calculate the histogram
+x = itemfreq(lbp.ravel())
+# Normalize the histogram
+hist = x[:, 1]/sum(x[:, 1])
+
+# Append histogram to X_test, label to X_label
+X_test.append(hist)
+X_label.append('horse')
+
+# Two grass details
+
+im = cv2.imread('grassDetail1.png')
+# Convert to grayscale as LBP works on grayscale image
+im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+radius = 3
+# Number of points to be considered as neighbors 
+no_points = 8 * radius
+# Uniform LBP is used
+lbp = local_binary_pattern(im_gray, no_points, radius, method='uniform')
+# Calculate the histogram
+x = itemfreq(lbp.ravel())
+# Normalize the histogram
+hist = x[:, 1]/sum(x[:, 1])
+
+# Append histogram to X_test, label to X_label
+X_test.append(hist)
+X_label.append('grass')
+
+im = cv2.imread('grassDetail2.png')
+# Convert to grayscale as LBP works on grayscale image
+im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+radius = 3
+# Number of points to be considered as neighbors 
+no_points = 8 * radius
+# Uniform LBP is used
+lbp = local_binary_pattern(im_gray, no_points, radius, method='uniform')
+# Calculate the histogram
+x = itemfreq(lbp.ravel())
+# Normalize the histogram
+hist = x[:, 1]/sum(x[:, 1])
+
+# Append histogram to X_test, label to X_label
+X_test.append(hist)
+X_label.append('grass')
+
+#and the full zebra/grass picture
+
+im = cv2.imread('zebra.png')
+# Convert to grayscale as LBP works on grayscale image
+im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+radius = 3
+# Number of points to be considered as neighbors 
+no_points = 8 * radius
+# Uniform LBP is used
+lbp = local_binary_pattern(im_gray, no_points, radius, method='uniform')
+# Calculate the histogram
+x = itemfreq(lbp.ravel())
+# Normalize the histogram
+hist = x[:, 1]/sum(x[:, 1])
+
+# Append histogram to X_test, label to X_label
+X_test.append(hist)
+X_label.append('zebrainfield')
+
+#test images
+#choose one to test
+
+im = cv2.imread('zebraDetail3.png')
+#im = cv2.imread('grassDetail3.png')
+#im = cv2.imread('horseDetail3.png')
+# Convert to grayscale as LBP works on grayscale image
+im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+radius = 3
+# Number of points to be considered as neighbors 
+no_points = 8 * radius
+# Uniform LBP is used
+lbp = local_binary_pattern(im_gray, no_points, radius, method='uniform')
+# Calculate the histogram
+x = itemfreq(lbp.ravel())
+# Normalize the histogram
+hist = x[:, 1]/sum(x[:, 1])
+
+# calculate Chi-Squared distance between a test image and all images in training set
+
+for index, x in enumerate(X_test):
+    score = cv2.compareHist(np.array(x, dtype=np.float32), np.array(hist, dtype=np.float32), cv2.HISTCMP_CHISQR)
+    results.append((round(score, 3), index, X_label[index]))
+ 
+ results=[]
+# For each image in the training dataset
+# Calculate the chi-squared distance and then sort the values
+for index, x in enumerate(X_test):
+    score = cv2.compareHist(np.array(x, dtype=np.float32), np.array(hist, dtype=np.float32), cv2.HISTCMP_CHISQR)
+    results.append((round(score, 3), index, X_label[index]))
+    print(score, index, X_label[index])
+    
+# sort results by best match (smallest distance number)
+#We can classify our test image by taking the category with a training image with the best score 
+#(smallest distance between histograms.) Or we could weight the values in various ways. We do the simplest below, 
+#taking the single best match.
+
+results = sorted(results, key=lambda score: score[0])
+for result in results:
+    print(result)
+    
+print('our test image is in category:')
+print(results[0][2])
