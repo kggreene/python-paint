@@ -12,3 +12,5 @@ in progress
 6. Experiment with CV and machine learning including contour tracing, texture analysis, image moments, edge detection, pattern recognition, classification
     
     a. Is It Zebra - LBP texture mapping
+    
+    b. Color quantiztion - k-means clustering
