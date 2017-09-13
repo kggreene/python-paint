@@ -3,7 +3,7 @@ machine learning, computer vision and graphics for automating drawing and colori
 
 (in progress)
 
-#### DragonPaint 
+### DragonPaint 
 ##### current: 
 machine learning training set generator for style to style translation for automated coloring for animation - uses component analysis and geometric relationships to automate training set generation for the colored version in sketch/colored pairs 
 ##### upcoming: 
@@ -17,5 +17,7 @@ combine Pix2Pix, tensorflow and component analysis to color dragon sketches
 4. Mathematical Daisy - create and paint families/varieties of cartoon flowers using parameters, parameterized curves and intersections of regions
 5. Pattern Maker - machine learning - do something like PaintsChainer https://github.com/pfnet/PaintsChainer to take hint of user's paint scribbles and extrapolate to a layered "wallpaper" pattern to color a circle (center of flower) with
 6. Experiment with CV and machine learning including contour tracing, texture analysis, image moments, edge detection, pattern recognition, classification
+
     a. Is It Zebra - LBP texture mapping
+    
     b. Color quantiztion - k-means clustering
