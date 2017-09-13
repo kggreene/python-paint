@@ -9,7 +9,7 @@ machine learning training set generator for style to style translation for autom
 ##### upcoming: 
 combine Pix2Pix, tensorflow and component analysis to color dragon sketches
 
-![alt text](https://raw.githubusercontent.com/kggreene/python-paint/Dragon.bmp)
+![alt text](../Dragon.bmp)
 
 ### other planned and existing python-paint functionality:
 2. Red Ball - machine learning - use Pix2Pix (see Image-to-Image Translation with Conditional Adversarial Networks, Isola, et. al., https://github.com/phillipi/pix2pix), tensorflow to color balls red
