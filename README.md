@@ -3,7 +3,7 @@ machine learning, computer vision and graphics for automating drawing and colori
 
 (in progress)
 
-#### DragonPaint (code sample)
+#### DragonPaint (look here for code sample)
 ##### current: 
 machine learning training set generator for style to style translation for automated coloring for animation - uses component analysis and geometric relationships to automate training set generation for the colored version in sketch/colored pairs 
 ##### upcoming: 
