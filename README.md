@@ -3,11 +3,13 @@ machine learning, computer vision and graphics for automating drawing and colori
 
 (in progress)
 
-#### DragonPaint (look here for code sample)
+#### DragonPaint 
 ##### current: 
 machine learning training set generator for style to style translation for automated coloring for animation - uses component analysis and geometric relationships to automate training set generation for the colored version in sketch/colored pairs 
 ##### upcoming: 
 combine Pix2Pix, tensorflow and component analysis to color dragon sketches
+
+
 
 ### other planned and existing python-paint functionality:
 2. Red Ball - machine learning - use Pix2Pix (see Image-to-Image Translation with Conditional Adversarial Networks, Isola, et. al., https://github.com/phillipi/pix2pix), tensorflow to color balls red
