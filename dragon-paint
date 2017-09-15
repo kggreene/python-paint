@@ -1,257 +1,137 @@
-#Code sample from DragonPaint, a computer vision/graphics/machine learning program for automating sketch painting, in progress.
-#K.G.Greene
-#9/11/17
-
-# class SketchComponents
-# Label connected components labeled with scimage.measure.label
-# BACKGROUND v. BODY v. SPIKES Find areas of white components to get background and body and spikes+.
-# SPIKES v. EYE Find distance between component and background to distinguish eye from spikes.
-
-#Code shown allows creation of labels for background, body, spikes and eye for a cartoon dragon sketch to allow 
-#"paint by body part." It also works for flowers if body=flower center, spikes=petals and petals are smaller than the center.
-#I'll probably make a superclass and subclasses for each subject when I have multiple subjects. 
-
-from matplotlib import pyplot as plt
-import math, cv2, numpy as np
-from skimage import measure 
-from skimage.measure import regionprops
-
 #sample dragon sketch to color
-#(and see below for test image code for this and other images)
+from matplotlib import pyplot as plt
 dragon=cv2.imread('Dragon.bmp',0)
 plt.imshow(dragon, cmap = 'gray', interpolation = 'bicubic')
 plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
 plt.show()
 
+#This is code from DragonPaint, a computer vision/graphics/machine learning program for automating sketch painting for cartoon 
+#drawing and animation production, for flat/cel style character drawing/coloring, e.g. The Simpsons. Project is in progress.
+#K.G.Greene
+#9/15/17
+
+#DRAGONPAINT AUTOPAINTS SKETCHES BY CHARACTER TYPE USING IMAGE TO IMAGE TRANSLATION WITH CONDITIONAL ADVERSARIAL NETS
+#The goal of DragonPaint is to automate the painting of sketches of animated characters in a consistent
+#way based on one or very few examples or rules/patterns we can state for a given character type, e.g. for dragons: 
+#paint body green, spikes, yellow, and leave eye uncolored; for Bart Simpson: paint head and body parts yellow, shirt red,
+#pants blue (or whatever clothes specified for a specific episode) and leave eyes uncolored.
+
+#DragonPaint adapts Isola, et. al.'s GAN based machine learning algorithm/code from their paper, Image to Image Translation 
+#with Conditional Adversarial Nets, to create a colored sketch/cartoon character from an uncolored one. Based on Isola, 
+#et. al.'s applications, the estimated number of matched pairs needed (sketch + same sketch colored in) to train the model 
+#is 400-1000.
+
+#DRAGONPAINT MINIMIZES MANUAL WORK IN TRAINING SET CREATION
+#A major subgoal of DragonPaint is to require the smallest number possible of manually drawn and manually colored images  
+#for the creation of the ML training set.
+
+#A later section will address reducing the number of manually drawn images. This section assumes that a collection of good
+#drawn sketches exists and focuses on reducing the number of manually colored paired images we need.
+
+#GOAL=ZERO MANUALLY COLORED TRAINING IMAGES IN TRAINING PAIRS
+#The goal is to require only a single manually colored sketch per character type (or zero if a color scheme can be 
+#described and used without actually coloring a sketch.)
+
+#CREATING COLORED HALF OF TRAINING PAIR WITHOUT MANUAL PAINTING
+#GOOD SKETCH AUTOPAINT
+#I. We create a "good sketch" autopainting program using components and geometric relationships so that from any goodSketch 
+#we get a goodSketchColored and make (goodSketch, goodSketchColored) a pair for the training set.
+#EXPANDING TO BAD SKETCHES USING GOOD SKETCH COLORED PAIR
+#II. We expand our training set by modifying a goodSketch and/or by modifying the pair (goodSketch, goodSketchColored).
+#A. Given a pair (goodSketch,goodSketchColored) we expand the training set to include bad sketches by e.g. erasing part of 
+#goodSketch, pairing it with the original goodSketchColored and adding the pair (goodSketchWithErasures,goodSketchColored) 
+#to the training set.
+#B. We also expand the training set by modifying both images in the pair in the same way, e.g. by cropping the goodSketch 
+#and its colored mate (same crop parameters) so that the background becomes disconnected or smaller than the body and then 
+#adding the pair (goodSketchCropped,goodSketchColoredCropped) to the training set.
+
+#GOOD SKETCH DEFINITION
+#A "good sketch" for a dragon is based on observations of a few of the simpler dragon sketches (e.g. leave off ears, claws, 
+#don't let arms create a disconnected background). A "good sketch" has the following properties:
+#1. Black lines on white background.
+#2. Lines connect so paint by "paint bucket"/components works.
+#3. Background is connected and is bigger than any other white component.
+#4. Body is the next biggest white component.
+#5. Only interior part (inside the body) is the eye.
+#6. Only body parts are body, spikes, eye (without eyelid).
+
+#LABELING GOOD SKETCHES FOR PAINT BY PART
+#The code shown here, SketchComponents, is part of I, the "good sketch" autopainting program. SketchComponents takes a 
+#"good sketch" and labels the parts, preparing them to be automatically colored with a "paint by body part" mapping. 
+  
+#CODE SAMPLE
+import math, cv2, numpy as np
+from skimage import measure 
+from skimage.measure import regionprops
+from functools import reduce
+
 class SketchComponents:
     #Part of project DragonPaint
-    #The goal of SketchComponents is to do as well as we can in autopainting without machine learning to 
-    #minimize (goal=zero or one) the number of training images that will have to be manually painted for the ML training set.
 
-    #SketchComponents contains component based autopainting methods for "good sketches" to partially automate the creation 
-    #of a training set for a machine learning GAN based autopainting program based on Isola, et. al's 
-    #Image to Image Translation with Conditional Adversarial Nets. 
-    
-    #SketchComponents stores image and uses component information (area, color, distance between components) to 
-    #label and color sketch parts of image according to a part coloring map, e.g. color dragon body green, 
-    #spikes yellow and leave eyes white or color flower center orange and petals yellow.
+    #SketchComponents stores sketch image and uses component information (area, color, distance between components) to 
+    #label sketch parts of image so they can be colored according to a part coloring map, e.g. color dragon body green, 
+    #spikes yellow and leave eyes white.
     
     #Image = black line cartoon sketch on white background from "Paint" program with well connected lines 
     #and certain geometric relationships (e.g. background bigger than body and body bigger than any other dragon part).
     
-    def __init__(self,image):
-        #Finds white components, background, body and line width at init. Finding distance between components 
-        #Depending on incoming data, might want to change to grayscale or scale to standard size here.
+    def __init__(self,image,cartoonCharType='flower'):
+        #For the two cartoonCharTypes ('flower' and 'dragon') finds white components, background, body and spikes at init
+        #For cartoonCharType=='dragon', finds distance between each component and background, finds line width and finds 'eye'
+        #Depending on incoming data, might want to change to grayscale or scale to standard size
         
-        #store sketch image
+        #store sketch image, threshold to black and white, calculate labels and regionprops for connected components 
         self.image=image
-        #find connected components
-        self.labelComponents()
-        #find white components
-        self.setWhiteLabels()
-        #background and body are largest and second largest white components
-        self.backgroundLabel,self.bodyLabel=self.setBackgroundAndBody()
-        #placeholder values for lineWidth and matrix of distances between components
-        #will be set if/when we calculate component distances - a slow calculation and not needed for all applications
-        self.lineWidth=-1 
-        self.D=[] 
-    
-    #LABEL CONNECTED COMPONENTS
-    def labelComponents(self):
-        #We want only black and white (no gray) for components to work as intended so binary threshold
-        ret,self.thresh1 = cv2.threshold(self.image,200,255,cv2.THRESH_BINARY) 
-        self.labels=measure.label(self.thresh1,background=-1)
-        self.regions=regionprops(self.labels)
-        self.numRegions=len(self.regions)       
+        ret,self.blackWhiteSketch = cv2.threshold(self.image,200,255,cv2.THRESH_BINARY) 
+        #for region in regions we can access e.g. region.label, region.area, region.coords
+        self.regions = self.labelComponents()   
         
+        #label background and body (largest and second largest white components) and spikes+ (other white components)
+        self.backgroundLabel, self.bodyLabel, self.spikeLabels = self.setBackgroundBodySpikes()
+        
+        if cartoonCharType=='dragon':
+            self.lineWidth=self.setLineWidth()
+            self.eyeLabels, self.spikeLabels = self.setEyeSpikes()
+
     #BACKGROUND V. BODY V. SPIKES+ for dragons
     #(OR BACKGROUND V. CENTERS V. PETALS for flowers)
     
     #Use components' size and color (white) to distinguish between background, body and spikes+.
     #The largest white component is background. The second largest is body. 
-    #The rest of the white components are spikes or other and we'll differentiate them in other methods.
+    #The rest of the white components are spikes (or spikes+other for dragon)
     
-    def setWhiteLabels(self):
-        #make list of labels of white components
-        self.whiteLabels=[]
-        for i in range(self.numRegions):
-            row,column=self.regions[i].coords[0][0],self.regions[i].coords[0][1]
-            if(self.thresh1[row][column]==255):
-                self.whiteLabels.append(self.regions[i].label)
+    #LABEL CONNECTED COMPONENTS
+    def labelComponents(self):
+        return regionprops(measure.label(self.blackWhiteSketch))
+    
+    #LABEL BACKGROUND, BODY, SPIKES
+    def setBackgroundBodySpikes(self):
+        #background is largest white region, body is next largest; spikeLabels is the remaining white components
+        #By default, measure.label assigns all black pixels label 0.
+        spikeLabels=sorted([region.label for region in self.regions if region.label!=0],key=lambda label: self.regions[label-1].area)
+        backgroundLabel=spikeLabels.pop()
+        bodyLabel=spikeLabels.pop()
+        return backgroundLabel, bodyLabel, spikeLabels
         
-    def setBackgroundAndBody(self):
-        #Make a list of sizes of white components and then sort to get biggest and second biggest.
-        #If I later decide I need the whiteSize list for something, save it here.
-        whiteSize=[]
-        for label in self.whiteLabels:
-            whiteSize.append(self.regions[label-1].area)
-        sizeSorted=sorted(whiteSize,reverse=True)
-        biggestSize=sizeSorted[0]
-        secondBiggestSize=sizeSorted[1] 
-        #find labels for two biggest white components, background and body; save
-        backgroundLabel=-1
-        bodyLabel=-1
-        for label in self.whiteLabels:
-            if self.regions[label-1].area==biggestSize:
-                backgroundLabel=label
-            if self.regions[label-1].area==secondBiggestSize:
-                if label!=backgroundLabel:
-                    bodyLabel=label
-        return backgroundLabel, bodyLabel            
-    
     #SPIKES V. EYE
-    #dragon only; not needed for flowers
-    #Use distance between components.
-    #Eye is in interior of body, spikes are on the edge.
-    #Relationships true in sample sketches: dist(eye,background)>3*lineWidth and dist(eye,body)<2*lineWidth
-    #Note that eye may have multiple white components but distance to background > 3*lineWidth holds for all of them.
-    #We can get line width from distance between body and background: lineWidth=dist(body,background)
-    #Eyelid (for another method): if sketch has eyelid, it will be captured here as part of eye. To color it e.g. 
-    #body color, use y-value to separate it if you know you have eyelid. If you don't know, maybe find a way to 
-    #recognize the lines crossing in X's. 
+    #For dragon only; not needed for flowers.
+    #We can use that the eye is in the interior of the body and the spikes are on the edge to distinguish between them.
+    #EucDist(eye,background)>3*lineWidth and EucDist(eye,body)<2*lineWidth
+    #Eye may have multiple white components but distance to background > 3*lineWidth holds for all of them.
+    #We can get line width from the distance between body and background: lineWidth=EucDist(body,background)
+    #Look for a faster way than this for alternate algorithm because the component distance calculation is very slow.
 
-    #Define component distance methods and compute distance matrix.
-    def Euc2(self,point1,point2):
-        a=(point1[0]-point2[0])**2
-        b=(point1[1]-point2[1])**2
-        return a+b
-
-    def calcCompDistance(self,i,j):
-        #Calculate Euclidean distance between components with labels i and j.
-        #Note component with label i is at index i-1
-        point1=self.regions[i-1].coords[0]
-        point2=self.regions[j-1].coords[0]
-        minDist=self.Euc2(point1,point2)
-        for point2 in self.regions[j-1].coords:
-            for point1 in self.regions[i-1].coords:
-                minDist=min(minDist,self.Euc2(point1,point2))
-        return math.sqrt(minDist)
-    
-    def computeCompDistMatrix(self):
-        #Compute component distance matrix - entry at i,j is distance between regions labeled i+1 and j+1.
-        #This is a slow calculation - look for a better way.
-        componentDist=np.zeros((self.numRegions,self.numRegions))
-        for i in range(self.numRegions):
-            componentDist[i][i]=0
-            for j in range(i+1,self.numRegions):
-                componentDist[i][j]=self.calcCompDistance(i+1,j+1)
-                componentDist[j][i]=componentDist[i][j]
-        self.D=componentDist
-    
-    def getComponentDistance(self,i,j):
-        if i<=0 or j<=0 or i>self.numRegions or j>self.numRegions:
-            return -1
-        elif len(self.D)==0:
-            self.computeCompDistMatrix()
-        return self.D[i-1][j-1]
-    
+    def calcEucDistCompToBackgrd(self,label):
+        #Calculates Euclidean distance between background component and the component with label, 'label'
+        return math.sqrt(min((ptLbl[0]-ptBckgrd[0])**2+(ptLbl[1]-ptBckgrd[1])**2 for ptLbl in 
+                              self.regions[label-1].coords for ptBckgrd in self.regions[self.backgroundLabel-1].coords))
+        
     def setLineWidth(self):
-        self.lineWidth=self.getComponentDistance(self.bodyLabel,self.backgroundLabel)
+        #Finds distance between body and background to calculate drawing line width.
+        return self.calcEucDistCompToBackgrd(self.bodyLabel)
     
     def setEyeSpikes(self):
-        #Use this to find the eye in the body/to distinguish eye from spike.
-        #I assume interior components (components a min distance from the background) are the eye which assumes that 
-        #only the eye is interior but if we have other interior points in the body or in another component, we'll need 
-        #to distinguish between the cases. I assume at least for now that everything else is a spike.
-        interiorWhiteLabels=[]
-        spikes=[]
-        if self.lineWidth==-1:
-            self.setLineWidth()
-        for label in self.whiteLabels:
-            if label!=self.backgroundLabel and label!=self.bodyLabel:
-                if self.getComponentDistance(label,self.backgroundLabel)>2*self.lineWidth:
-                    interiorWhiteLabels.append(label)
-                else:
-                    spikes.append(label)
-        self.spikes=spikes        
-        self.eye=interiorWhiteLabels
-            
-    #Note - I need to think about how to make Spike. v. Eye faster. The component distance calculation is computationally
-    #expensive. A possible faster algorithm for Spike v. Eye is to expand region around spike/eye by 2*lineWidth and ask if 
-    #that intersects with background. If not, eye. If yes, spike. 
-    #I'll probably want distance between components for other things though, e.g. to distinguish spikes as a longer 
-    #'chain of close things' than claws. Look again for component distance already implemented in Python library. 
-    
-    class TestSketch:
-    #Tests for SketchComponents
-    
-    def testSketches(self,numTest):
-
-        #tests 0,1,2 for testing BACKGROUND v. BODY
-        if numTest==0:
-            #Make small array with three components plus background.
-            img=np.zeros((5,5), dtype=np.uint8)
-            c1=[[0,0],[0,1],[1,0]]
-            c2=[[1,1]]
-            c3=[[3,4],[4,4],[3,1]]
-            c=c1+c2+c3
-            for (p1,p2) in c:
-                img[p1,p2]=255
-            return img
-
-        if numTest==1:
-            #Make small black circle on white background.
-            # Create a black image, turn it white and draw black circle.
-            img = np.zeros((15,15), dtype=np.uint8)
-            img[:] = 255
-            #cv2.circle(img, center, radius, color, thickness=1, lineType=8, shift=0)
-            #Can change line type to get antialiased, default isn't; negative thickness is solid disk.
-            cv2.circle(img,(7,7),5,0,2)
-            return img
-
-        if numTest==2:
-            #Make two concentric black circles on white background.
-            # Create a black image, turn it white and draw black circles.
-            img = np.zeros((60,60), dtype=np.uint8)
-            img[:] = 255
-            #cv2.circle(img, center, radius, color, thickness=1, lineType=8, shift=0)
-            #Can change line type to get antialiased, default isn't; negative thickness is solid disk.
-            cv2.circle(img,(30,30),17,0,2)
-            cv2.circle(img,(30,30),7,0,2)
-            return img
-        
-        if numTest==3:
-            #read in a sample scaled down dragon sketch, Dragon200x200.bmp
-            img=cv2.imread('Dragon200x200.bmp',0)
-            cv2.imshow('image from file',img)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-            return img
- 
-        if numTest==4:
-            #read in full dragon sketch, Dragon.bmp
-            img=cv2.imread('Dragon.bmp',0)
-            cv2.imshow('image from file',img)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-            return img
-    
-    def printTestBackgroundBody(self,numTest):
-        #tests component labels, size, background and body labels 
-        sketch=SketchComponents(self.testSketches(numTest))
-        print('image')
-        print(sketch.image)
-        print('thresh1')
-        print(sketch.thresh1)
-        print('labels')
-        print(sketch.labels)
-        print('numRegions',sketch.numRegions)
-        print('whiteLabels',sketch.whiteLabels)
-        for region in sketch.regions:
-            print('label',region.label,'area',region.area)
-        print('backgroundLabel',sketch.backgroundLabel)
-        print('bodyLabel',sketch.bodyLabel)
-        return sketch
-    
-    def printTestEyeSpikes(self,numTest):
-        #do testBackgroundBody first so you know it works
-        #the component distance computations are very slow for sketches - think about how to make them faster
-        sketch=SketchComponents(self.testSketches(numTest))
-        sketch=self.printTestBackgroundBody(numTest)
-        sketch.setEyeSpikes()
-        print('sketch.lineWidth',sketch.lineWidth)
-        print('sketchD')
-        print(sketch.D)
-        print('sketch.eye',sketch.eye)
-        print('sketch.spikes',sketch.spikes)
-        
+        #Use the component to background distance requirement to get eyeLabels, then remove those from spikeLabels
+        eyeLabels = list(filter(lambda label:self.calcEucDistCompToBackgrd(label)>=2*self.lineWidth,self.spikeLabels))
+        spikeLabels = list(filter(lambda label:label not in eyeLabels,self.spikeLabels))
+        return eyeLabels, spikeLabels
