@@ -10,7 +10,7 @@ This code is for a machine learning training set generator for style to style tr
 ##### upcoming: 
 I'll attempt additional work to reduce the number of sketches that have to be drawn by hand for reliable coloring, with a goal of 50 or fewer drawings and no manual coloring (or just one to specify the pattern). Then I'll combine Pix2Pix, tensorflow and component analysis to color dragon sketches according to a set pattern. After that, I'll work on the subject identification problem - knowing the difference between a dragon and a flower and coloring accordingly.
 
-![alt text](./Dragon.bmp)
+![alt text](./Dragon200x200.bmp)
 
 ### other planned and existing python-paint functionality:
 2. Red Ball - machine learning - use Pix2Pix (see Image-to-Image Translation with Conditional Adversarial Networks, Isola, et. al., https://github.com/phillipi/pix2pix), tensorflow to color balls red
