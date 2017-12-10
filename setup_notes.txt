@@ -1,0 +1,24 @@
+Getting Started With PythonPaint
+
+1. Clone the python-paint repo 
+2. Create a virtual environment:
+
+cd into the home python-paint directory and execute the following commands:
+   $ virtualenv --clear ppaint 
+   $ source ppaint/bin/activate
+   $ pip install -r requirements
+   
+
+3. You should now be able to execute the tensor-flow-intro script:
+   $ python tensor-flow-intro 
+
+the output might include some warnings from tensorflow, but should also include a line like:
+
+    W: [ 0.49999878] b: [-0.99999636] loss: 8.81872e-12
+
+if you see that line, you've run the intro script. (though it's up to you to make sure you
+understand it!)
+
+4. Explore the other scripts.
+
+
