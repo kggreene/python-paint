@@ -111,11 +111,11 @@ class Augmentations():
         sigmas = [3, 4, 7, 8]
         Alist = []
         Blist = []
-        for i in range(len(alphas)):
+        for alpha, sigma in zip(alphas, sigmas):
             transA, transB = self.elasticTransformColorPair(imgA,
                                                             imgB,
-                                                            alphas[i],
-                                                            sigmas[i])
+                                                            alpha,
+                                                            sigma)
             Alist.append(transA)
             Blist.append(transB)
         return Alist, Blist
@@ -136,27 +136,27 @@ class Augmentations():
         if random_state is None:
             random_state = np.random.RandomState(None)
         shape = imgA.shape
-        dx = gaussian_filter((random_state.rand(*shape) * 2 - 1),
-                             sigma,
-                             mode="constant",
-                             cval=0) * alpha
-        dy = gaussian_filter((random_state.rand(*shape) * 2 - 1),
-                             sigma,
-                             mode="constant",
-                             cval=0) * alpha
+        dx, dy = [self.rename_this_function(shape, alpha, sigma) for _ in range(2)]
         dz = np.zeros_like(dx)
+        
         x, y, z = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]))
-        indices = np.reshape(y + dy, (-1, 1)), np.reshape(x+dx, (-1, 1)), np.reshape(z, (-1, 1))
-        distorted_imgA = map_coordinates(imgA,
-                                         indices,
-                                         order=1,
-                                         mode='reflect')
-        distorted_imgB = map_coordinates(imgB,
-                                         indices,
-                                         order=1,
-                                         mode='reflect')
-        return distorted_imgA.reshape(imgA.shape), distorted_imgB.reshape(imgB.shape)
+        indices = [np.reshape(array, (-1, 1)) for array in (y+dy, x+dx, z)]
+        
+        return [map_coordinates(img,
+                                indices,
+                                order=1,
+                                mode='reflect').reshape(img.shape)
+                for img in (imgA, imgB)]
 
+
+    def _rename_this_function(self, shape, alpha, sigma):
+        # what does this function mean? 
+        
+        return gaussian_filter((random_state.rand(*shape) * 2 - 1),
+                                sigma,
+                                mode="constant",
+                                cval=0) * alpha
+    
     def elasticDeformationGray(self, img, alpha, blurSize):
         # requires grayscale image
         # so unlike the AB pair transformations, read in as grayscale,
