@@ -146,26 +146,8 @@ class Augmentations():
 
         shape = img.shape
 
-        # calculate dx
-        xfield = np.zeros((shape[0], shape[0]))
-        for i in range(shape[0]):
-            for j in range(shape[0]):
-                xfield[i][j] = np.random.uniform(-1, 1)
-        xblur = cv2.GaussianBlur(xfield, (blurSize, blurSize), 0)
-        xnormBlurField = normalize(xblur)
-        xfield = alpha * xnormBlurField
-        dx = xfield
-
-        # calculate dy
-        yfield = np.zeros((shape[0], shape[0]))
-        for i in range(shape[0]):
-            for j in range(shape[0]):
-                yfield[i][j] = np.random.uniform(-1, 1)
-        yblur = cv2.GaussianBlur(yfield, (blurSize, blurSize), 0)
-        ynormBlurField = normalize(yblur)
-        yfield = alpha * ynormBlurField
-        dy = yfield
-
+        dx = calculateRandomDeformation(shape, alpha, blurSize)
+        dy = calculateRandomDeformation(shape, alpha, blurSize)
         x, y = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]))
         indices = np.reshape(y + dy, (-1, 1)), np.reshape(x + dx, (-1, 1))
 
@@ -177,6 +159,19 @@ class Augmentations():
 
         return distorted_image.reshape(img.shape)
 
+
+    def calculateRandomDeformation(shape, alpha, blurSize):
+        # there might be a better name!
+        field = np.zeros((shape[0], shape[0]))
+        for i in range(shape[0]):
+            for j in range(shape[0]):
+                field[i][j] = np.random.uniform(-1, 1)
+        blur = cv2.GaussianBlur(field, (blurSize, blurSize), 0)
+        normBlurField = normalize(blur)
+        field = alpha * normBlurField
+        return field
+
+        
     # RADIUS CUBED/DISC HOMEOMORPHISM
     def radiusCubedPair(self, imgA, imgB):
         # for flower, not for dragon
