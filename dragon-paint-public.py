@@ -28,72 +28,49 @@ class Augmentations():
     # still need elasticDeformationGray (done for one img but need set version?
     # incorporate read BW, transform, color into the function?)
     # still need erasures, crops
-    # #still need (here or elsewhere) the sequences of transformations
+    # still need (here or elsewhere) the sequences of transformations
 
     # AFFINE TRANSFORMATIONS:
     def randxyScaledSkewedPair(self, imgA, imgB):
         # small x and y scale and skew
         # fills in background white, might crop image
 
-        size = len(imgA)
         xscale = np.random.uniform(0.8, 1)
         yscale = np.random.uniform(0.8, 1)
         skewFactor = np.random.uniform(0, 0.1)
         M = np.float32([[xscale, 0, 0], [skewFactor, yscale, 0]])
-        scaleSkewA = cv2.warpAffine(imgA,
-                                    M,
-                                    (size, size),
-                                    borderMode=cv2.BORDER_CONSTANT,
-                                    borderValue=(255, 255, 255))
-        scaleSkewB = cv2.warpAffine(imgB,
-                                    M,
-                                    (size, size),
-                                    borderMode=cv2.BORDER_CONSTANT,
-                                    borderValue=(255, 255, 255))
-        return scaleSkewA, scaleSkewB
+        return self.warpAffinePair(imgA, imgB, M)        
 
     def randTranslationPair(self, imgA, imgB):
         # small translation in x and y
         # fills in background white, might crop image
 
         transMax = 20
-        size = len(imgA)
         transX = np.random.randint(transMax)
         transY = np.random.randint(transMax)
         M = np.float32([[1, 0, transX], [0, 1, transY]])
-        transA = cv2.warpAffine(imgA,
-                                M,
-                                (size, size),
-                                borderMode=cv2.BORDER_CONSTANT,
-                                borderValue=(255, 255, 255))
-        transB = cv2.warpAffine(imgB,
-                                M,
-                                (size, size),
-                                borderMode=cv2.BORDER_CONSTANT,
-                                borderValue=(255, 255, 255))
-        return transA, transB
+        return self.warpAffinePair(imgA, imgB, M)        
 
     def randRotationPair(self, imgA, imgB, characterType='flower'):
         # chooses random rotation between 0 and maxRotation
         # fills in background white, might crop image
 
         maxRotation = {'flower': 360, 'dragon': 10}
-        size = len(imgA)
         rotation = np.random.randint(maxRotation[characterType])
         # note: cols and rows are undefined here
         M = cv2.getRotationMatrix2D((cols / 2, rows / 2), rotation, 1)
-        rotA = cv2.warpAffine(imgA,
-                              M,
-                              (size, size),
-                              borderMode=cv2.BORDER_CONSTANT,
-                              borderValue=(255, 255, 255))
-        rotB = cv2.warpAffine(imgB,
-                              M,
-                              (size, size),
-                              borderMode=cv2.BORDER_CONSTANT,
-                              borderValue=(255, 255, 255))
-        return rotA, rotB
+        return self.warpAffinePair(imgA, imgB, M)
 
+    def warpAffinePair(self, imgA, imgB, M):
+        # please rename this function if needed        
+        size = len(imgA)    
+        return [cv2.warpAffine(img,
+                              M,
+                              (size, size),
+                              borderMode=cv2.BORDER_CONSTANT,
+                              borderValue=(255, 255, 255))
+                for img in (imgA, imgB)]
+        
     def mirrorFlipPair(self, imgA, imgB):
         # flips across y axis
 
