@@ -59,7 +59,17 @@ class Augmentations():
         rotation = np.random.randint(maxRotation[characterType])
         # note: cols and rows are undefined here
         M = cv2.getRotationMatrix2D((cols / 2, rows / 2), rotation, 1)
-        return self.warpAffinePair(imgA, imgB, M)
+        rotA = cv2.warpAffine(imgA, 
+                              M, 
+                              (size, size), 
+                              borderMode=cv2.BORDER_CONSTANT, 
+                              borderValue=(255,255,255))
+        rotB = cv2.warpAffine(imgB, 
+                              M, 
+                              (size, size), 
+                              borderMode=cv2.BORDER_CONSTANT, 
+                              borderValue=(255,255,255))
+        return rotA, rotB
 
     def warpAffinePair(self, imgA, imgB, M):
         # please rename this function if needed        
